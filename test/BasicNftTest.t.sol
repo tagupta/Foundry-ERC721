@@ -158,8 +158,23 @@ contract BasicNftTest is Test {
         basicNft.safeTransferFrom(USER, STRANGER, 0);
         assertEq(basicNft.ownerOf(0), STRANGER);
     }
-    
+
     /*//////////////////////////////////////////////////////////////
                               EDAGE CASES
     //////////////////////////////////////////////////////////////*/
+    function testCanNotMintToZeroAddress() external {
+        vm.prank(address(0));
+        address to = address(0);
+        bytes memory expectedError = abi.encodeWithSelector(IERC721Errors.ERC721InvalidReceiver.selector, to);
+        vm.expectRevert(expectedError);
+        basicNft.mintNFT(PUG);
+    }
+
+    function testCanNotTransferNonExistentToken() external mintNftUser{
+        vm.prank(USER);
+        uint nonMintedTokenId = 999;
+        bytes memory expectedError = abi.encodeWithSelector(IERC721Errors.ERC721NonexistentToken.selector,nonMintedTokenId );
+        vm.expectRevert(expectedError);
+        basicNft.safeTransferFrom(USER, STRANGER, nonMintedTokenId);
+    }
 }
