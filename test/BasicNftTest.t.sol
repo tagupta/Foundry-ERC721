@@ -1,21 +1,23 @@
 // SPDX-License-Identifier: SEE LICENSE IN LICENSE
 pragma solidity ^0.8.0;
 
-import {Test} from "forge-std/Test.sol";
+import {Test, console} from "forge-std/Test.sol";
 import {DeployBasicNft} from "script/DeployBasicNft.s.sol";
 import {BasicNft} from "src/BasicNft.sol";
-import {IERC721Errors} from '@openzeppelin/contracts/interfaces/draft-IERC6093.sol';
+import {IERC721Errors} from "@openzeppelin/contracts/interfaces/draft-IERC6093.sol";
+import {NftReceiver} from "src/NftReceiver.sol";
+import {IERC721Receiver} from "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
+import {Vm} from "forge-std/Vm.sol";
 
 contract MockContract {
-    constructor(){
-    }
+    constructor() {}
 }
-contract BasicNftTest is Test {
 
+contract BasicNftTest is Test {
     DeployBasicNft deployer;
     BasicNft basicNft;
-    address public USER = makeAddr('user');
-    address public STRANGER = makeAddr('stranger');
+    address public USER = makeAddr("user");
+    address public STRANGER = makeAddr("stranger");
     string public constant PUG = "ipfs://QmcX8ncdt8WTDfzzrhiQ1R8fpw42jAz4oTbZ2rR9YkNgoQ/?filename=0-PUG.json";
     string public constant SHIBA = "ipfs://QmfADiCkoCFjXLvZJax6EGru1D9YJZ7gTxmyTt8SLvBMr7/?filename=0-SHIBA.json";
 
@@ -35,11 +37,10 @@ contract BasicNftTest is Test {
         bytes32 nftSymbol = keccak256(bytes(basicNft.NFT_SYMBOL()));
         bytes32 symbol = keccak256(bytes(basicNft.symbol()));
         assertEq(nftSymbol, symbol);
-
     }
 
-    function test_InitialCounterValueIsZero() view external {
-        uint initalTokenCount = basicNft.getTokenCount();
+    function test_InitialCounterValueIsZero() external view {
+        uint256 initalTokenCount = basicNft.getTokenCount();
         assertEq(initalTokenCount, 0);
     }
 
@@ -69,7 +70,7 @@ contract BasicNftTest is Test {
         assertEq(basicNft.balanceOf(USER), basicNft.getTokenCount());
     }
 
-    function test_WithEmptyURI() external{
+    function test_WithEmptyURI() external {
         vm.prank(USER);
         basicNft.mintNFT("");
 
@@ -90,19 +91,20 @@ contract BasicNftTest is Test {
         assertEq(basicNft.ownerOf(0), STRANGER);
     }
 
-    function test_CanNotTransferWithoutApproval() external mintNftUser{
+    function test_CanNotTransferWithoutApproval() external mintNftUser {
         //user mints nft
         //other user tries to transfer nft without approval
         vm.prank(STRANGER);
         address spender = STRANGER;
         uint256 tokenId = 0;
-        bytes memory expectedError = abi.encodeWithSelector(IERC721Errors.ERC721InsufficientApproval.selector, spender, tokenId);
+        bytes memory expectedError =
+            abi.encodeWithSelector(IERC721Errors.ERC721InsufficientApproval.selector, spender, tokenId);
         vm.expectRevert(expectedError);
         basicNft.transferFrom(USER, STRANGER, 0);
     }
 
-    function test_RevertWhen_SafeTranferToContractNotCompatibleWithERC721() external mintNftUser{
-        //Contract not implemented onERC721Received()
+    function test_RevertWhen_SafeTranferToContractNotCompatibleWithERC721() external mintNftUser {
+        //Contract has not implemented onERC721Received()
         MockContract mock = new MockContract();
         vm.prank(USER);
         address to = address(mock);
@@ -110,4 +112,54 @@ contract BasicNftTest is Test {
         vm.expectRevert(expectedError);
         basicNft.safeTransferFrom(USER, address(mock), 0);
     }
+
+    function test_SafeTransferFromToContractCompatibleWithERC721() external mintNftUser {
+        // before going for transfer
+        // check if the receipient supports the supportInterface()
+        NftReceiver mockNFTReceiver = new NftReceiver();
+        bytes4 interfaceId = bytes4(keccak256("onERC721Received(address,address,uint256,bytes)"));
+        assert(mockNFTReceiver.supportsInterface(interfaceId) == true);
+        vm.prank(USER);
+
+        vm.recordLogs();
+        basicNft.safeTransferFrom(USER, address(mockNFTReceiver), 0);
+        Vm.Log[] memory logs = vm.getRecordedLogs();
+
+        bytes32 eventSig = keccak256("NFTReceived(address,address,uint256,bytes,uint256)");
+
+        for (uint256 i = 0; i < logs.length; i++) {
+            if (logs[i].topics[0] == eventSig) {
+                address opeartor = address(uint160(uint256(logs[i].topics[1])));
+                address from = address(uint160(uint256(logs[i].topics[2])));
+                uint256 tokenId = uint256(logs[i].topics[3]);
+                assertEq(opeartor, USER);
+                assertEq(from, USER);
+                assertEq(tokenId, 0);
+            }
+        }
+    }
+    /*//////////////////////////////////////////////////////////////
+                             APPROVAL TEST
+    //////////////////////////////////////////////////////////////*/
+
+    function testApproveNft() external mintNftUser{
+        vm.prank(USER);
+        basicNft.approve(STRANGER, 0);
+
+        assertEq(basicNft.getApproved(0), STRANGER);
+    }
+
+    function testApprovedCanTransfer() external mintNftUser{
+        vm.prank(USER);
+        basicNft.approve(STRANGER, 0);
+
+        //check if approved address can safely transfer the nft from the nft owner
+        vm.prank(STRANGER);
+        basicNft.safeTransferFrom(USER, STRANGER, 0);
+        assertEq(basicNft.ownerOf(0), STRANGER);
+    }
+    
+    /*//////////////////////////////////////////////////////////////
+                              EDAGE CASES
+    //////////////////////////////////////////////////////////////*/
 }
