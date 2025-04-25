@@ -170,7 +170,7 @@ contract BasicNftTest is Test {
         basicNft.mintNFT(PUG);
     }
 
-    function testCanNotTransferNonExistentToken() external mintNftUser{
+    function testCanNotTransferNonExistentToken() external mintNftUser {
         vm.prank(USER);
         uint nonMintedTokenId = 999;
         bytes memory expectedError = abi.encodeWithSelector(IERC721Errors.ERC721NonexistentToken.selector,nonMintedTokenId );
