@@ -142,14 +142,14 @@ contract BasicNftTest is Test {
                              APPROVAL TEST
     //////////////////////////////////////////////////////////////*/
 
-    function testApproveNft() external mintNftUser{
+    function testApproveNft() external mintNftUser {
         vm.prank(USER);
         basicNft.approve(STRANGER, 0);
 
         assertEq(basicNft.getApproved(0), STRANGER);
     }
 
-    function testApprovedCanTransfer() external mintNftUser{
+    function testApprovedCanTransfer() external mintNftUser {
         vm.prank(USER);
         basicNft.approve(STRANGER, 0);
 
@@ -172,8 +172,9 @@ contract BasicNftTest is Test {
 
     function testCanNotTransferNonExistentToken() external mintNftUser {
         vm.prank(USER);
-        uint nonMintedTokenId = 999;
-        bytes memory expectedError = abi.encodeWithSelector(IERC721Errors.ERC721NonexistentToken.selector,nonMintedTokenId );
+        uint256 nonMintedTokenId = 999;
+        bytes memory expectedError =
+            abi.encodeWithSelector(IERC721Errors.ERC721NonexistentToken.selector, nonMintedTokenId);
         vm.expectRevert(expectedError);
         basicNft.safeTransferFrom(USER, STRANGER, nonMintedTokenId);
     }
