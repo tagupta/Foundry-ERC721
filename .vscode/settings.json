@@ -1,3 +1,6 @@
 {
-  "svg.preview.background": "editor"
+  "workbench.editor.enablePreview": false, // Keeps files open
+  "files.associations": {
+    "*.svg": "xml"
+  }
 }
