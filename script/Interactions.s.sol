@@ -5,7 +5,7 @@ import {Script} from "forge-std/Script.sol";
 import {DevOpsTools} from "@foundry-devops/src/DevOpsTools.sol";
 import {BasicNft} from "src/BasicNft.sol";
 
-contract Interactions is Script {
+contract MintBasicNft is Script {
     string public constant PUG = "ipfs://QmcX8ncdt8WTDfzzrhiQ1R8fpw42jAz4oTbZ2rR9YkNgoQ/?filename=0-PUG.json";
 
     function run() external {
