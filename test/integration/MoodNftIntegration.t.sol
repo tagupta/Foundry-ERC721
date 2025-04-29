@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 
 import {Test, console} from "forge-std/Test.sol";
 import {MoodNft} from "src/MoodNft.sol";
-import {DeployMoodNft} from 'script/DeployMoodNft.s.sol';
+import {DeployMoodNft} from "script/DeployMoodNft.s.sol";
 
 contract MoodNftIntegrationTest is Test {
     MoodNft moodNft;
@@ -18,7 +18,7 @@ contract MoodNftIntegrationTest is Test {
     function setUp() external {
         // moodNft = new MoodNft(SAD_SVG_URI, HAPPY_SVG_URI);
         deployer = new DeployMoodNft();
-        moodNft = deployer.run(); 
+        moodNft = deployer.run();
     }
 
     function testViewTokenURIIntegration() external {
